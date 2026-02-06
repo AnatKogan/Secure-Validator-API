@@ -73,5 +73,12 @@ def validate():
  
     return render_template_string(HTML_TEMPLATE, msg="Invalid Credentials", color="#dc3545", icon="✘")
 
+@app.route('/health')
+def health_check():
+    _, _, free = shutil.disk_usage("/")
+    if free < 100 * 1024 * 1024:
+        return {"status": "unhealthy", "reason": "Disk space low"}, 500
+    return {"status": "healthy"}, 200
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
