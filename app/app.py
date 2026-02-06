@@ -1,10 +1,11 @@
 import os
+import sys
 from flask import Flask, request, render_template_string, jsonify
 from datetime import datetime
 
 app = Flask(__name__)
 
-LOG_FILE = "/app/logs/access.log"
+LOG_FILE = "/app/logs/success.log"
 
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -47,24 +48,30 @@ def home():
 def validate():
     user_key = request.args.get('key')
     user_val = request.args.get('value')
+    
+    if not user_key or not user_val:
+        return render_template_string(HTML_TEMPLATE)
+
     correct_key = os.getenv('REQUIRED_KEY', 'admin')
     correct_val = os.getenv('APP_SECRET')
 
     if user_key == correct_key and user_val == correct_val:
-        client_ip = request.remote_addr
-        with open(LOG_FILE, "a") as f:
-            f.write(f"{datetime.now()}: Success from IP {client_ip}\n")
-        return render_template_string(HTML_TEMPLATE, msg="Access Granted", color="#28a745", icon="✔")
-    
-    return render_template_string(HTML_TEMPLATE, msg="Invalid Credentials", color="#dc3545", icon="✘")
+        client_ip = request.remote_addr or "unknown"
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{current_time}] SUCCESS: User '{user_key}' from IP {client_ip}\n"
+        
+        try:
+            os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+            with open(LOG_FILE, "a") as f:
+                f.write(log_entry)
+                f.flush()
+            print(log_entry.strip(), file=sys.stderr)
+            return render_template_string(HTML_TEMPLATE, msg="Access Granted & Logged", color="#28a745", icon="✔")
+        except Exception as e:
+            return render_template_string(HTML_TEMPLATE, msg=f"Log Error: {e}", color="#ffc107", icon="⚠")
 
-@app.route('/health')
-def health():
-    env_ok = bool(os.getenv('APP_SECRET'))
-    if env_ok:
-        return jsonify({"status": "healthy", "env": True}), 200
-    else:
-        return jsonify({"status": "unhealthy", "env": False}), 500
+ 
+    return render_template_string(HTML_TEMPLATE, msg="Invalid Credentials", color="#dc3545", icon="✘")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)

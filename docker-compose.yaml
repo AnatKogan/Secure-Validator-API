@@ -1,18 +1,17 @@
+
 services:
-  api:
+  validator-api:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: secure-validator:latest
     container_name: my-api
     ports:
       - "8080:8080"
+    user: "root"
     environment:
+      - TZ=Asia/Jerusalem
       - APP_SECRET=1234
-      - LOG_PATH=/logs/success.log
+      - REQUIRED_KEY=admin
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./logs:/logs:rw
-    restart: always
-    # Updates logs to point to the terminal (stdout)
-    command: gunicorn --access-logfile - --error-logfile - -b 0.0.0.0:8080 app:app
+      - ./logs:/app/logs

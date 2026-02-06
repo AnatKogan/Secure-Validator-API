@@ -7,19 +7,31 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: validator-api  # שונה כדי להתאים ל-Service
+      app: validator-api
   template:
     metadata:
       labels:
-        app: validator-api  # שונה כדי להתאים ל-Service
+        app: validator-api
     spec:
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+
+      initContainers:
+      - name: init-permissions
+        image: busybox
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        command: ["sh", "-c", "mkdir -p /app/logs && chown -R 1000:1000 /app/logs && chmod -R 775 /app/logs"]
+        volumeMounts:
+        - name: log-storage
+          mountPath: /app/logs
+
       containers:
       - name: validator-api
-        image: secure-validator-api:latest # ודאי שזה השם שבנית ב-Docker
+        image: secure-validator-api:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
@@ -34,6 +46,7 @@ spec:
         volumeMounts:
         - name: log-storage
           mountPath: /app/logs
+
       volumes:
       - name: log-storage
         emptyDir: {}

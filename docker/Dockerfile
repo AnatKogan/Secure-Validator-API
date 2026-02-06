@@ -1,21 +1,16 @@
-FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM python:3.9-slim
 
 WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
 
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/app.py .
+COPY app/ .
 
-RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs
+RUN mkdir -p /app/logs
 
-RUN useradd -m -u 1000 appuser
-USER 1000
-
-ENV PORT=8080
 EXPOSE 8080
 
-CMD ["gunicorn", "--access-logfile", "-", "--error-logfile", "-", "-b", "0.0.0.0:8080", "app:app"]
+CMD ["python", "app.py"]
