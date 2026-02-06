@@ -75,10 +75,20 @@ def validate():
 
 @app.route('/health')
 def health_check():
-    _, _, free = shutil.disk_usage("/")
-    if free < 100 * 1024 * 1024:
-        return {"status": "unhealthy", "reason": "Disk space low"}, 500
-    return {"status": "healthy"}, 200
+    log_dir = 'logs'
+    is_writable = os.access(log_dir, os.W_OK)
+    
+    if not is_writable:
+        return jsonify(
+            status="unhealthy", 
+            reason="Log directory is not writable",
+            container="secure-validator"
+        ), 500
+        
+    return jsonify(
+        status="healthy", 
+        container="secure-validator"
+    ), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
