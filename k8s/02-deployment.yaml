@@ -3,50 +3,37 @@ kind: Deployment
 metadata:
   name: secure-validator
   namespace: devops-exam
-  labels:
-    app: secure-validator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: secure-validator
+      app: validator-api  # שונה כדי להתאים ל-Service
   template:
     metadata:
       labels:
-        app: secure-validator
+        app: validator-api  # שונה כדי להתאים ל-Service
     spec:
-      # Security context to match your Dockerfile user (1000)
       securityContext:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-
       containers:
       - name: validator-api
-        # Replace with your actual image name
-        image: secure-validator:latest
+        image: secure-validator-api:latest # ודאי שזה השם שבנית ב-Docker
         imagePullPolicy: IfNotPresent
-        
         ports:
         - containerPort: 8080
-
-        # Environment variables configuration
         env:
         - name: PORT
           value: "8080"
-        - name: LOG_PATH
-          value: "/app/logs/success.log"
         - name: APP_SECRET
           valueFrom:
             secretKeyRef:
               name: api-secret
               key: APP_SECRET
-
-        # Volume mounting for logs (Step 1 requirement)
         volumeMounts:
         - name: log-storage
           mountPath: /app/logs
-
       volumes:
       - name: log-storage
         emptyDir: {}

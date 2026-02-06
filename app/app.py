@@ -1,52 +1,70 @@
-from flask import Flask, request, jsonify
 import os
+from flask import Flask, request, render_template_string, jsonify
 from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 
-APP_SECRET = os.getenv("APP_SECRET", "1234")
-LOG_PATH = os.getenv("LOG_PATH", "logs/success.log")
-PORT = int(os.getenv("PORT", 8080))
+LOG_FILE = "/app/logs/access.log"
 
-@app.get("/")
-def index():
-    return jsonify({"message": "Secure Validator API is running"}), 200
+HTML_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure Validator</title>
+    <style>
+        body { background-color: #f0f2f5; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        h2 { margin-bottom: 25px; color: #1c1e21; font-size: 24px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .message { margin-top: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>DevOps Secure Login</h2>
+        <form action="/validate" method="get">
+            <input type="text" name="key" placeholder="Username" required>
+            <input type="password" name="value" placeholder="Secret" required>
+            <button type="submit">Validate</button>
+        </form>
+        {% if msg %}
+        <div class="message" style="color: {{ color }};">
+            <span>{{ icon }}</span> {{ msg }}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+'''
 
-@app.get("/health")
-def health():
-    return jsonify({"status": "ok"}), 200
+@app.route('/')
+def home():
+    return render_template_string(HTML_TEMPLATE)
 
-@app.post("/validate")
+@app.route('/validate')
 def validate():
-    data = request.get_json(silent=True)
-    user_value = data.get('value') if data else "None"
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    is_valid = str(user_value).strip() == str(APP_SECRET).strip()
+    user_key = request.args.get('key')
+    user_val = request.args.get('value')
+    correct_key = os.getenv('REQUIRED_KEY', 'admin')
+    correct_val = os.getenv('APP_SECRET')
 
-    if is_valid:
-        # Log SUCCESS to file
-        try:
-            log_dir = os.path.dirname(LOG_PATH)
-            if log_dir and not os.path.exists(log_dir):
-                os.makedirs(log_dir, exist_ok=True)
-
-            with open(LOG_PATH, "a", encoding="utf-8") as f:
-                f.write(f"{timestamp} | IP: {client_ip} | Status: success\n")
-                f.flush()
-        except Exception as e:
-            print(f"Logging failed: {e}")
-        
-        return jsonify({"ok": True}), 200
+    if user_key == correct_key and user_val == correct_val:
+        client_ip = request.remote_addr
+        with open(LOG_FILE, "a") as f:
+            f.write(f"{datetime.now()}: Success from IP {client_ip}\n")
+        return render_template_string(HTML_TEMPLATE, msg="Access Granted", color="#28a745", icon="✔")
     
+    return render_template_string(HTML_TEMPLATE, msg="Invalid Credentials", color="#dc3545", icon="✘")
+
+@app.route('/health')
+def health():
+    env_ok = bool(os.getenv('APP_SECRET'))
+    if env_ok:
+        return jsonify({"status": "healthy", "env": True}), 200
     else:
-        # Print FAILURE to console only
-        print(f"ALERT: Failed validation attempt at {timestamp} | IP: {client_ip} | Value: {user_value}")
-        return jsonify({"ok": False}), 401
+        return jsonify({"status": "unhealthy", "env": False}), 500
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=PORT)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
