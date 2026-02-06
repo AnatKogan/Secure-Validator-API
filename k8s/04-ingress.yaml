@@ -3,16 +3,17 @@ kind: Ingress
 metadata:
   name: validator-ingress
   namespace: devops-exam
+  annotations:
+    kubernetes.io/ingress.class: "gce"
 spec:
+  ingressClassName: gce 
   rules:
-    - host: validator.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: validator-svc
-                port:
-                  number: 80
-
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: validator-service
+            port:
+              number: 80

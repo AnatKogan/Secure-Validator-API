@@ -1,18 +1,18 @@
-version: "3.9"
-
 services:
-  validator-api:
+  api:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: secure-validator-api:local
-    container_name: secure-validator-api
+    image: secure-validator:latest
+    container_name: my-api
     ports:
       - "8080:8080"
     environment:
-      APP_SECRET: "1234"
+      - APP_SECRET=1234
+      - LOG_PATH=/logs/success.log
+      - PYTHONUNBUFFERED=1
     volumes:
-      - ./logs:/app/logs
-    restart: unless-stopped
-
-
+      - ./logs:/logs:rw
+    restart: always
+    # Updates logs to point to the terminal (stdout)
+    command: gunicorn --access-logfile - --error-logfile - -b 0.0.0.0:8080 app:app
