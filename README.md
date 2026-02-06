@@ -1,19 +1,3 @@
-# Secure Validator API
-
-A professional Dockerized Python API built with Flask and Gunicorn. This project demonstrates secure key validation, environment variable management, and advanced logging practices.
-
----
-
-## Features
-- Validation Endpoint: Securely check values via POST /validate.
-- Standardized Logging:
-    - Successes: Logged to a local file (logs/success.log) via Docker Volumes.
-    - Security Alerts: Failed attempts are printed to stdout for real-time monitoring.
-- Production Ready: Runs using Gunicorn with non-root user security.
-- DevOps Best Practices: Zero-buffering logs and automated container restarts.
-
----
-
 ## Project Structure
 Secure Validator API/
 ├── app/
@@ -24,44 +8,42 @@ Secure Validator API/
 ├── logs/                   # Success logs (Created by Docker)
 └── docker-compose.yaml     # Local orchestration
 
----
+Secure Validator API
+A Flask-based API designed to demonstrate DevOps practices, including containerization, cloud deployment, and infrastructure monitoring.
 
-## Getting Started
+Key Features
+Dockerized Environment: Fully containerized using Docker and managed with Docker Compose.
 
-### 1. Prerequisites
-Make sure you have Docker Desktop installed and running on your machine.
+Cloud Native: Deployed on Google Cloud Run with centralized logging.
 
-### 2. Run Locally
-Execute the following command in your terminal from the project root:
-docker-compose up -d --build
+Dynamic Health Monitoring: Includes a custom /health endpoint that performs deep checks on the container file system.
 
-### 3. Verify Application
-Check if the server is healthy by visiting:
-http://localhost:8080/health
+Environment Management: Uses environment variables for configuration and secrets.
 
----
+Live Infrastructure
+Application Interface: https://secure-validator-service-223990326824.me-west1.run.app/validate
 
-## Testing the API
+Health Monitoring: https://secure-validator-service-223990326824.me-west1.run.app/health
 
-### Success Scenario (Valid Secret)
-Returns {"ok": true} and writes a log entry to the local logs folder.
-Invoke-RestMethod -Uri "http://localhost:8080/validate" -Method Post -ContentType "application/json" -Body '{"value": "1234"}'
+Health Check Logic
+The application implements a dynamic health check to ensure reliability:
 
-### Failure Scenario (Invalid Secret)
-Returns {"ok": false} and triggers a real-time ALERT in the terminal.
-Invoke-RestMethod -Uri "http://localhost:8080/validate" -Method Post -ContentType "application/json" -Body '{"value": "wrong-secret"}'
+It verifies that the logs directory exists within the container.
 
----
+It confirms that the application has active write permissions to the file system.
 
-## Monitoring
-To watch logs and security alerts in real-time, use the following command:
-docker logs -f my-api
+In case of failure (e.g., directory missing or permission issues), the endpoint returns a 500 status code with a JSON error report, allowing the cloud orchestrator to handle the instance accordingly.
 
----
+Local Deployment
+Clone the repository to your local machine.
 
-## Cloud Deployment
-This project is pre-configured for Google Cloud Platform (GCP).
-Deployment targets: Artifact Registry and Cloud Run.
+Ensure Docker Desktop is running.
 
-Required Command:
-gcloud run deploy secure-api --source .
+Execute the following command in the project root:
+docker-compose up --build
+
+Access the local instance at:
+
+Application: http://localhost:8080/validate
+
+Health Status: http://localhost:8080/health
