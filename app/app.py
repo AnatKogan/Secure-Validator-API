@@ -56,7 +56,13 @@ def validate():
     correct_val = os.getenv('APP_SECRET')
 
     if user_key == correct_key and user_val == correct_val:
-        client_ip = request.remote_addr or "unknown"
+        # Get the real user IP from X-Forwarded-For if it exists, otherwise use remote_addr
+        forwarded_ip = request.headers.get('X-Forwarded-For')
+        if forwarded_ip:
+            client_ip = forwarded_ip.split(',')[0]
+        else:
+            client_ip = request.remote_addr or "unknown"
+
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{current_time}] SUCCESS: User '{user_key}' from IP {client_ip}\n"
         
@@ -65,12 +71,14 @@ def validate():
             with open(LOG_FILE, "a") as f:
                 f.write(log_entry)
                 f.flush()
+            
+            # Print to stderr for Google Cloud Logs Explorer
             print(log_entry.strip(), file=sys.stderr)
+            
             return render_template_string(HTML_TEMPLATE, msg="Access Granted & Logged", color="#28a745", icon="✔")
         except Exception as e:
             return render_template_string(HTML_TEMPLATE, msg=f"Log Error: {e}", color="#ffc107", icon="⚠")
 
- 
     return render_template_string(HTML_TEMPLATE, msg="Invalid Credentials", color="#dc3545", icon="✘")
 
 @app.route('/health')
